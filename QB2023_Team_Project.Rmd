@@ -1,0 +1,256 @@
+---
+title: "QB2023_Team_Project"
+author: "Erica Nadolski, Z620: Quantitative Biodiversity, Indiana University"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+geometry: margin = 2.54cm
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(tidyverse)
+library(dplyr)
+
+### Project site by species matrix
+
+
+
+Ponds97 <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds97.csv", row.names=1))
+# raw read data matrix
+
+Ponds.pa <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.pa.csv", row.names=1))
+# presence/absence matrix
+
+Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.rel.csv", row.names=1))
+# relative abundance matrix
+
+Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.env.csv")) # environmental data
+
+nrow(Ponds.env) # number of sites
+ncol(Ponds.env)
+
+### Rank abundance plot of site 1 
+ponds.rac <- as.numeric(RAC(Ponds97[1,]))
+length(ponds.rac)
+max(ponds.rac)
+min(ponds.rac)
+plot.new()
+pond.ranks <- as.vector(seq(1, length(ponds.rac)))
+plot(pond.ranks, log(ponds.rac), type="p", axes=F,
+     xlab="Rank in abundance", ylab="Abundance",
+     las=1, cex.lab=1.4, cex.axis=1.25);
+box();
+axis(side=1, labels=T, cex.axis=1.25);
+axis(side=2, las=1, cex.axis=1.25,
+     labels= c(1,10,100,1000,100000), at=log(c(1,10,100,1000,10000)))
+
+
+## Scatter plot of some env variables
+env <- as.data.frame(Ponds.env)
+
+env <- env %>% mutate_at(c("lat","long","Elevation","Diameter","Depth","Cal_Volume","ORP","Temp","SpC","DO","TDS","Salinity","pH","Color","chla","DOC","DON","canopy","TP"), as.numeric)
+
+str(env)
+
+diam <- env[1:56,"Diameter"]
+max(diam)
+min(diam)
+mean(diam)
+
+depth <- env[1:56,"Depth"]
+max(depth)
+min(depth)
+mean(depth)
+
+p <- ggplot(env, aes(x=Diameter, y=Depth, label=X))
+p + geom_point(aes(colour = factor(Location))) + geom_text(hjust=0, vjust=0, size=2) + scale_x_continuous(n.breaks = 10)
+
+
+```
+
+> ***Code Analysis***: We are using a Lennon lab dataset of microbial DNA and cDNA extracted from local ponds. There are 58 pond sites, and 34059 species (OTUs) across all the sites. There is high variance in abundance and evenness across all of the sites; based on exploratory rank abundance curves, there is high abundance of a few OTUs and a long tail of low-abundance OTUs.
+```
+
+## PCA of Environmental Variables
+
+```{r pressure, echo=FALSE}
+## no missing data in subset: env[1:53,3:21]
+
+env.pca = prcomp(env[1:53,3:21])
+?prcomp()
+
+```
+Beta Diversity - Visualization
+
+```{r}
+# relative abundance matrix
+Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.rel.csv", row.names=1))
+#sites 54-58 are missing some environmental data
+
+# subsetting total (DNA) and active (cDNA) libraries for each site
+
+keep_DNA <- c("BC001-DNA","BC002-DNA","BC003-DNA","BC004-DNA","BC005-DNA","BC010-DNA","BC015-DNA","BC016-DNA","BC018-DNA","BC020-DNA","BC048-DNA","BC049-DNA","BC051-DNA","BC105-DNA","BC108-DNA","BC262-DNA","BCL01-DNA","BCL03-DNA","HNF132-DNA","HNF133-DNA","HNF134-DNA","HNF144-DNA","HNF168-DNA","HNF185-DNA","HNF187-DNA","HNF189-DNA","HNF190-DNA","HNF191-DNA","HNF216-DNA","HNF217-DNA","HNF221-DNA","HNF224-DNA","HNF225-DNA","HNF229-DNA","HNF236-DNA","HNF237-DNA","HNF242-DNA","HNF250-DNA","HNF267-DNA","HNF269-DNA","HNF279-DNA","YSF004-DNA","YSF117-DNA","YSF295-DNA","YSF296-DNA","YSF298-DNA","YSF300-DNA","YSF44-DNA","YSF45-DNA","YSF46-DNA","YSF47-DNA","YSF65-DNA","YSF66-DNA","YSF67-DNA","YSF69-DNA","YSF70-DNA","YSF71-DNA","YSF74-DNA")
+
+keep_cDNA <- c("BC001-cDNA","BC002-cDNA","BC003-cDNA","BC004-cDNA","BC005-cDNA","BC010-cDNA","BC015-cDNA","BC016-cDNA","BC018-cDNA","BC020-cDNA","BC048-cDNA","BC049-cDNA","BC051-cDNA","BC105-cDNA","BC108-cDNA","BC262-cDNA","BCL01-cDNA","BCL03-cDNA","HNF132-cDNA","HNF133-cDNA","HNF134-cDNA","HNF144-cDNA","HNF168-cDNA","HNF185-cDNA","HNF187-cDNA","HNF189-cDNA","HNF190-cDNA","HNF191-cDNA","HNF216-cDNA","HNF217-cDNA","HNF221-cDNA","HNF224-cDNA","HNF225-cDNA","HNF229-cDNA","HNF236-cDNA","HNF237-cDNA","HNF242-cDNA","HNF250-cDNA","HNF267-cDNA","HNF269-cDNA","HNF279-cDNA","YSF004-cDNA","YSF117-cDNA","YSF295-cDNA","YSF296-cDNA","YSF298-cDNA","YSF300-cDNA","YSF44-cDNA","YSF45-cDNA","YSF46-cDNA","YSF47-cDNA","YSF65-cDNA","YSF66-cDNA","YSF67-cDNA","YSF69-cDNA","YSF70-cDNA","YSF71-cDNA","YSF74-cDNA")
+
+# Active libraries - only 55
+active <- Ponds.rel[rownames(Ponds.rel) %in% keep_cDNA, ]      # Extract rows from matrix
+ 
+# total libraries - 58
+total <- Ponds.rel[rownames(Ponds.rel) %in% keep_DNA, ]      # Extract rows from matrix
+row.names(total) <- c("BC001","BC002","BC003","BC004","BC005","BC010","BC015","BC016","BC018","BC020","BC048","BC049","BC051","BC105","BC108","BC262","BCL01","BCL03","HNF132","HNF133","HNF134","HNF144","HNF168","HNF185","HNF187","HNF189","HNF190","HNF191","HNF216","HNF217","HNF221","HNF224","HNF225","HNF229","HNF236","HNF237","HNF242","HNF250","HNF267","HNF269","HNF279","YSF004","YSF117","YSF295","YSF296","YSF298","YSF300","YSF44","YSF45","YSF46","YSF47","YSF65","YSF66","YSF67","YSF69","YSF70","YSF71","YSF74")
+```
+
+```{r}
+# Bray Curtis resemblance matrix
+total.db <- vegdist(total, method="bray")
+
+# Heatmap 
+order.p <- rev(attr(total.db, "Labels"))
+
+levelplot(as.matrix(total.db)[,order.p], aspect="iso", col.regions=inferno,
+          xlab="Pond Site", ylab= "Pond Site", scales=list(cex=0.5), 
+          main= "Bray-Curtis Distance")
+
+# Wards cluster analysis
+total.ward <- hclust(total.db, method= "ward.D2")
+
+par(mar = c(1, 5, 2, 2) + 0.1)
+plot(total.ward, main="Indiana Pond Bacteria: Ward's Clustering", ylab= "Squared Bray-Curtis Distance")
+
+# Principal Component Analysis
+total.pcoa <- cmdscale(total.db, eig=TRUE, k=3)
+
+exvar1 <- round(total.pcoa$eig[1] / sum(total.pcoa$eig), 3) * 100
+exvar2 <- round(total.pcoa$eig[2] / sum(total.pcoa$eig), 3) * 100
+exvar3 <- round(total.pcoa$eig[3] / sum(total.pcoa$eig), 3) * 100
+total.sum.eig <- sum(exvar1, exvar2, exvar3)
+
+par(mar = c(5, 5, 1, 2) + 0.1)
+total.pcoa <- plot(total.pcoa$points[ ,1], total.pcoa$points[ ,2], ylim = c(-0.2, 0.7),
+     xlab= paste("PCoA 1 (", exvar1, "%)", sep = ""),
+     ylab= paste("PCoA 2 (", exvar2, "%)", sep = ""),
+     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5,
+     cex.axis=1.2, axes=FALSE);
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
+abline(h = 0, v = 0, lty = 3);
+box(lwd = 2);
+points(total.pcoa$points[ ,1], total.pcoa$points[ ,2],
+       pch = 19, cex = 3, bg = "gray", col = "gray");
+text(total.pcoa$points[ ,1], total.pcoa$points[ ,2],
+     labels = row.names(total.pcoa$points))
+```
+
+
+## SYNTHESIS week 4
+
+Load the dataset from that you and your partner are using for the team project. 
+Use one of the hypothesis-testing tools introduced in the beta diversity module. 
+Interpret the findings of your data with respect to principles of biodiversity. 
+
+```{r, echo=FALSE}
+library(dplyr)
+
+## Data input and setup 
+Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.env.csv", row.names=1)) # environmental data
+Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.rel.csv", row.names=1))
+
+# env data missing for "HNF279", 189, 190, 191, 236, 237
+
+keep_DNA <- c("BC001-DNA","BC002-DNA","BC003-DNA","BC004-DNA","BC005-DNA","BC010-DNA","BC015-DNA","BC016-DNA","BC018-DNA","BC020-DNA","BC048-DNA","BC049-DNA","BC051-DNA","BC105-DNA","BC108-DNA","BC262-DNA","BCL01-DNA","BCL03-DNA","HNF132-DNA","HNF133-DNA","HNF134-DNA","HNF144-DNA","HNF168-DNA","HNF185-DNA","HNF187-DNA","HNF216-DNA","HNF217-DNA","HNF221-DNA","HNF224-DNA","HNF225-DNA","HNF229-DNA","HNF242-DNA","HNF250-DNA","HNF267-DNA","HNF269-DNA","YSF004-DNA","YSF117-DNA","YSF295-DNA","YSF296-DNA","YSF298-DNA","YSF300-DNA","YSF44-DNA","YSF45-DNA","YSF46-DNA","YSF47-DNA","YSF65-DNA","YSF66-DNA","YSF67-DNA","YSF69-DNA","YSF70-DNA","YSF71-DNA","YSF74-DNA") # "HNF189-DNA","HNF190-DNA","HNF191-DNA","HNF236-DNA","HNF237-DNA","HNF279-DNA")
+
+total <- Ponds.rel[rownames(Ponds.rel) %in% keep_DNA, ]      # Extract rows from matrix
+row.names(total) <- c("BC001","BC002","BC003","BC004","BC005","BC010","BC015","BC016","BC018","BC020","BC048","BC049","BC051","BC105","BC108","BC262","BCL01","BCL03","HNF132","HNF133","HNF134","HNF144","HNF168","HNF185","HNF187","HNF216","HNF217","HNF221","HNF224","HNF225","HNF229","HNF242","HNF250","HNF267","HNF269","YSF004","YSF117","YSF295","YSF296","YSF298","YSF300","YSF44","YSF45","YSF46","YSF47","YSF65","YSF66","YSF67","YSF69","YSF70","YSF71","YSF74") # "HNF189","HNF190","HNF191","HNF236","HNF237","HNF279")
+
+
+env <- apply(Ponds.env[,1:20], 2, function(x) as.numeric(as.character(x))) # get data to numeric type
+row.names(env) <- c("BC001","BC002","BC003","BC004","BC005","BC010","BC015","BC016","BC018","BC020","BC048","BC049","BC051","BC105","BC108","BC262","BCL01","BCL03","HNF132","HNF133","HNF134","HNF144","HNF168","HNF185","HNF187","HNF189","HNF190","HNF191","HNF216","HNF217","HNF221","HNF224","HNF225","HNF229","HNF236","HNF237","HNF242","HNF250","HNF267","HNF269","HNF279","YSF004","YSF117","YSF295","YSF296","YSF298","YSF300","YSF44","YSF45","YSF46","YSF47","YSF65","YSF66","YSF67","YSF69","YSF70","YSF71","YSF74")
+env <- env[1:53,-1] # remove sites with NA; tried na.action=na.exclude(), na.roughfix but didn't work
+env <- env[-34,]
+```
+
+### i.  Mantel Test
+In the R code chunk below, do the following:   
+
+1. create distance matrices for both fish communities and environmental factors, and
+2. use a Mantel test to test the hypothesis that fish assemblages are correlated with stream environmental variables.
+
+```{r}
+# define matrices
+OTU.dist <- vegdist(total, method="bray")
+pond.env.dist <- vegdist(env, method="euclid")
+
+# mantel test
+mantel(OTU.dist,pond.env.dist)
+
+```
+
+### Constrained Ordination of Indiana Ponds data
+
+1. create an environmental matrix of the pond data using forward and reverse selection of variables
+2. conduct a redundancy analysis on the bacterial assemblages
+3. use a permutation test to determine the significance of the constrained analysis,
+4. use a permutation test to determine the correlation of each environmental factor on the constrained axes,
+5. calculate the explained variation on the first and second constrained axes,
+6. plot the constrained ordination results including labeled points for each site, and
+7. add vectors that demonstrate the influence of each environmental factor the constrained ordination.   
+
+```{r}
+# Constrained Ordination
+pond.dbrda <- dbrda(total ~ ., as.data.frame(env)) #perform dbRDA
+ordiplot(pond.dbrda)
+# first model only intercept
+pond.dbrda.mod0 <- dbrda(total ~ 1, as.data.frame(env)) 
+ordiplot(pond.dbrda.mod0) # no vectors constrained here, so its a simple MDS (PCoA)
+# now model with all explanatory variables
+pond.dbrda.mod1 <- dbrda(total ~ ., as.data.frame(env))
+# now iterate through all combos of explanatory variables, return model with lowest AIC
+# pond.dbrda <- ordiR2step(pond.dbrda.mod0,pond.dbrda.mod1, permutations = how(nperm = 200))
+# couldnt get ordiR2step to work, error that upper scope cannot be reached
+pond.dbrda <- ordistep(pond.dbrda.mod0,pond.dbrda.mod1, permutations = how(nperm = 200))
+# look at model that was selected
+pond.dbrda$call
+pond.dbrda$anova
+ordiplot(pond.dbrda)
+# permutation tests to evaluate significance
+permutest(pond.dbrda, permutations=999)
+envfit(pond.dbrda, env[,c()], perm=999)
+#calculate explained variation
+pond.dbrda.explainvar1 <- round(pond.dbrda$CCA$eig[1] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
+pond.dbrda.explainvar2 <- round(pond.dbrda$CCA$eig[2] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
+
+# now plot selected model, define plot parameters
+par(mar=c(5,5,4,4)+0.1)
+pond.vectors <- scores(pond.dbrda,display="bp")
+plot(scores(pond.dbrda, display="wa"), xlab=paste("dbRDA 1 (",pond.dbrda.explainvar1,"%)", sep=""), 
+     ylab=paste("dbRDA 2 (", pond.dbrda.explainvar2, "%)", sep=""),
+     pch=16, cex=2.0, type="n", cex.lab=1.5, cex.axis=1.2, axes=FALSE);
+axis(side=1, labels=T, lwd.ticks=2, cex.axis=1.2,las=1);
+axis(side=2, labels=T, lwd.ticks=2, cex.axis=1.2,las=1);
+abline(h=0,v=0,lty=3);
+box(lwd=2);
+points(scores(pond.dbrda,display="wa"), pch=19,cex=3,bg="gray",col="gray");
+text(scores(pond.dbrda,display="wa"),labels=row.names(scores(pond.dbrda,display="wa")));
+arrows(0,0,pond.vectors[,1], pond.vectors[,2], lwd=2, lty=1, length=0.2, col="red");
+text(pond.vectors[,1], pond.vectors[,2], pos=3,labels=row.names(pond.vectors));
+axis(side=3, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
+     at=pretty(range(pond.vectors[,1]))*2, labels=pretty(range(pond.vectors[,1])));
+axis(side=4, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
+     at=pretty(range(pond.vectors[,2]))*2, labels=pretty(range(pond.vectors[,2])))
+
+## something isn't quite right about the plot output --- is it just the sizing or other?
+
+## note for Erica to think about -- way to add spec scores like from last week, with a cut off only showing the most correlated OTUs?
+```
+
+> ***Synthesis Answer***: According to the Mantel test, 7% of the variation in pond bacterial communities can be explained by association with the ponds' corresponding environmental variables. This is much lower than what was found with the Doubs river data, but the bacterial OTUs are much more diverse than the fish species in the Doubs. The constrained ordination via dbRDA indicated that the variable "chla" was associated with much of the variation in pond data.
