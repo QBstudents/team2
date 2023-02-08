@@ -73,3 +73,26 @@ points(active.pcoa$points[ ,1], active.pcoa$points[ ,2],
        pch = 1, cex = 2, bg = "red", col = "red");
 text(active.pcoa$points[ ,1], active.pcoa$points[ ,2],
      labels = row.names(active.pcoa$points), adj=1)
+
+# Chunck of code from synthesis question (Biodiversity worksheet 2)
+
+library(vegan)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+data <- load("/Users/joyobrien/GitHub/team2/INPond_Initial.RData")
+
+DormDecay_env <- readRDS("/Users/joyobrien/GitHub/team2/DormDecay_env.rds")
+
+# DNA
+total_matrix <- Pond97[grep('-DNA', rownames(Pond97)),]
+
+# Permanova 
+adonis <- adonis2(total_matrix ~ DormDecay_env$Location, method = "bray", permutations = 999)
+print(adonis)
+
+library(indicspecies)
+indval_pond <- multipatt(total_matrix, cluster = DormDecay_env$Location, func = "IndVal.g",
+                         control = how(nperm = 999))
+summary(indval_pond)
