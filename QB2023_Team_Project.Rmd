@@ -10,12 +10,6 @@ geometry: margin = 2.54cm
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
 ```{r}
 library(tidyverse)
 library(dplyr)
@@ -230,7 +224,6 @@ pond.dbrda.explainvar1 <- round(pond.dbrda$CCA$eig[1] / sum(c(pond.dbrda$CCA$eig
 pond.dbrda.explainvar2 <- round(pond.dbrda$CCA$eig[2] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
 
 # now plot selected model, define plot parameters
-par(mar=c(5,5,4,4)+0.1)
 pond.vectors <- scores(pond.dbrda,display="bp")
 plot(scores(pond.dbrda, display="wa"), xlab=paste("dbRDA 1 (",pond.dbrda.explainvar1,"%)", sep=""), 
      ylab=paste("dbRDA 2 (", pond.dbrda.explainvar2, "%)", sep=""),
@@ -248,7 +241,7 @@ axis(side=3, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
 axis(side=4, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
      at=pretty(range(pond.vectors[,2]))*2, labels=pretty(range(pond.vectors[,2])))
 
-## something isn't quite right about the plot output --- is it just the sizing or other?
+## plot output is odd because pond.vectors are values < 1 so they look tiny. is this an error in the code?
 
 ## note for Erica to think about -- way to add spec scores like from last week, with a cut off only showing the most correlated OTUs?
 ```
