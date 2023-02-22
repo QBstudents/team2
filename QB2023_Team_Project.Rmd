@@ -24,7 +24,7 @@ Ponds97 <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds97.c
 Ponds.pa <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.pa.csv", row.names=1))
 # presence/absence matrix
 
-Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.rel.csv", row.names=1))
+Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.rel.csv", row.names=1))
 # relative abundance matrix
 
 Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.env.csv")) # environmental data
@@ -247,3 +247,54 @@ axis(side=4, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
 ```
 
 > ***Synthesis Answer***: According to the Mantel test, 7% of the variation in pond bacterial communities can be explained by association with the ponds' corresponding environmental variables. This is much lower than what was found with the Doubs river data, but the bacterial OTUs are much more diverse than the fish species in the Doubs. The constrained ordination via dbRDA indicated that the variable "chla" was associated with much of the variation in pond data.
+
+
+## 7) SYNTHESIS
+
+Work with members of your Team Project to obtain reference sequences for taxa in your study. For microorganisms like the bacteria we worked with above, many people use the ribosomal gene (i.e., 16S rRNA). This has many desirable features, including it is relatively long, highly conserved, and identifies taxa with reasonable resolution. 
+
+1. Download sequences and create a properly formatted fasta file.
+2. Align the sequences and confirm that you have a good alignment. 
+3. Choose a substitution model and make a tree of your choice. 
+4. Based on the decisions above and the output, does your tree jibe with what is known about the evolutionary history of your organisms? If not, why? Is there anything you could do differently that would improve your tree, especially with regard to future analyses done by your team?
+
+```{r}
+# set up packages
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("msa")
+
+library(msa)
+library(Biostrings)
+
+# import taxonomy info for OTUs
+taxa <- as.matrix(read.csv("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/8.PhyloTraits/40taxa.csv", col.names= c("Otu","abundance","phylum","class","order","family","genus"), header=FALSE))
+
+# data wrangling to get Otu names 
+#taxa[,"genus"]
+#taxa[,"family"]
+
+# import fasta with outgroup
+bac <- readDNAStringSet("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/8.PhyloTraits/40bac.fasta", format="fasta")
+
+# align sequences using default MUSCLE parameters
+# read.aln <- msaMuscle(bac)
+
+# convert alignment to DNAbin object {ape}
+bac.DNAbin <- as.DNAbin(bac)
+
+# visualize alignment {ape}
+par(mar = c(4, 10, 4, 2))
+image.DNAbin(bac.DNAbin, cex.lab=0.5)
+
+# distance
+bac.F84.outgroup <- match("Methanosarcina", bac.F84.tree$tip.label)
+bac.F84.rooted <- root(bac.F84.tree, bac.F84.outgroup, resolve.root=TRUE)
+# plot F84 neighbor joining tree
+par(mar= c(1,1,2,1)+0.1)
+plot.phylo(bac.F84.rooted, main="Pond Bacteria Neighbor Joining Tree", "phylogram", use.edge.length = FALSE, direction="right", cex=0.6, label.offset=1);
+add.scale.bar(cex=0.7)
+
+```
+
+> ***Synthesis Answer***:  For this week, we decided it would be easiest to work with a subset of the ~35000 OTUs from the pond dataset, so we took a subset of the 40 OTUs with the highest overall read counts across the pond samples (coincidentally this metric was how the OTUs were named in the original project so we have a list of OTU 01-40). Our tree does fit with the known evolutionary relationships of the bacteria, we have the tips labeled by OTU with taxonomic information that we added up to the family level, and OTUs of the same families and genera are clustering together in our tree which confirms the accuracy of our tree compared to known relationships.
