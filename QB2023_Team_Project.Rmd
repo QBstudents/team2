@@ -4,33 +4,34 @@ author: "Erica Nadolski, Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin = 2.54cm
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+### Project site by species matrix
+
 ```{r}
 library(tidyverse)
 library(dplyr)
 
-### Project site by species matrix
+# Project site by species matrix
+# raw read count matrix
+# Ponds97 <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds97.csv", row.names=1))
 
-
-
-Ponds97 <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds97.csv", row.names=1))
-# raw read data matrix
-
-Ponds.pa <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.pa.csv", row.names=1))
 # presence/absence matrix
+# Ponds.pa <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.pa.csv", row.names=1))
 
-Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.rel.csv", row.names=1))
 # relative abundance matrix
-
-Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.env.csv")) # environmental data
+Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.rel.csv", row.names=1))
+# environmental data
+Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.env.csv"))
 
 nrow(Ponds.env) # number of sites
-ncol(Ponds.env)
+ncol(Ponds.env) # number of measurements
 
 ### Rank abundance plot of site 1 
 ponds.rac <- as.numeric(RAC(Ponds97[1,]))
@@ -48,7 +49,7 @@ axis(side=2, las=1, cex.axis=1.25,
      labels= c(1,10,100,1000,100000), at=log(c(1,10,100,1000,10000)))
 
 
-## Scatter plot of some env variables
+## Scatter plot of some env variables just to look at variation
 env <- as.data.frame(Ponds.env)
 
 env <- env %>% mutate_at(c("lat","long","Elevation","Diameter","Depth","Cal_Volume","ORP","Temp","SpC","DO","TDS","Salinity","pH","Color","chla","DOC","DON","canopy","TP"), as.numeric)
@@ -71,7 +72,7 @@ p + geom_point(aes(colour = factor(Location))) + geom_text(hjust=0, vjust=0, siz
 
 ```
 
-> ***Code Analysis***: We are using a Lennon lab dataset of microbial DNA and cDNA extracted from local ponds. There are 58 pond sites, and 34059 species (OTUs) across all the sites. There is high variance in abundance and evenness across all of the sites; based on exploratory rank abundance curves, there is high abundance of a few OTUs and a long tail of low-abundance OTUs.
+> ***Dataset Note***: We are using a Lennon lab dataset of microbial DNA and cDNA extracted from local ponds. There are 58 pond sites, and 34059 species (OTUs) across all the sites. There is high variance in abundance and evenness across all of the sites; based on exploratory rank abundance curves, there is high abundance of a few OTUs and a long tail of low-abundance OTUs.
 ```
 
 ## PCA of Environmental Variables
@@ -79,11 +80,12 @@ p + geom_point(aes(colour = factor(Location))) + geom_text(hjust=0, vjust=0, siz
 ```{r pressure, echo=FALSE}
 ## no missing data in subset: env[1:53,3:21]
 
+# look at PCA of environmental data to see variation in site environments
 env.pca = prcomp(env[1:53,3:21])
-?prcomp()
 
 ```
-Beta Diversity - Visualization
+
+## Beta Diversity - Visualization
 
 ```{r}
 # relative abundance matrix
@@ -129,6 +131,7 @@ exvar2 <- round(total.pcoa$eig[2] / sum(total.pcoa$eig), 3) * 100
 exvar3 <- round(total.pcoa$eig[3] / sum(total.pcoa$eig), 3) * 100
 total.sum.eig <- sum(exvar1, exvar2, exvar3)
 
+# old PCoA
 par(mar = c(5, 5, 1, 2) + 0.1)
 total.pcoa <- plot(total.pcoa$points[ ,1], total.pcoa$points[ ,2], ylim = c(-0.2, 0.7),
      xlab= paste("PCoA 1 (", exvar1, "%)", sep = ""),
@@ -143,10 +146,34 @@ points(total.pcoa$points[ ,1], total.pcoa$points[ ,2],
        pch = 19, cex = 3, bg = "gray", col = "gray");
 text(total.pcoa$points[ ,1], total.pcoa$points[ ,2],
      labels = row.names(total.pcoa$points))
+
+
+# PCoA Plot PC1 x PC2 colored by state park
+par(mar = c(2, 2, 2, 2) + 3)
+plot(total.pcoa$points[ ,1], total.pcoa$points[ ,2],
+     #xlim = c(-0.55, -0.3),
+     #ylim = c(-0.03, 0.01),
+     xlab= paste("PCoA 1 (", exvar1, "%)", sep = ""),
+     ylab= paste("PCoA 2 (", exvar2, "%)", sep = ""),
+     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5,
+     cex.axis=1.2, axes=FALSE);
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
+abline(h = 0, v = 0, lty = 3);
+box(lwd = 2);                                        
+points(total.pcoa$points[1:18,1], total.pcoa$points[1:18,2],
+       pch = 20, cex = 2, bg = "blue", col = "blue"); # BC
+points(total.pcoa$points[19:41,1], total.pcoa$points[19:41,2],
+       pch = 20, cex = 2, bg = "red", col = "red"); # H
+points(total.pcoa$points[42:58,1], total.pcoa$points[42:58,2],
+       pch = 20, cex = 2, bg = "purple", col = "purple");# YW
+legend(x="topleft",,legend=c("Brown County", "Hoosier Natl. Forest", "Yellowood"),
+       fill=c("blue", "red","purple"))
+
 ```
 
 
-## SYNTHESIS week 4
+## beta diversity hypothesis-testing 
 
 Load the dataset from that you and your partner are using for the team project. 
 Use one of the hypothesis-testing tools introduced in the beta diversity module. 
@@ -156,12 +183,22 @@ Interpret the findings of your data with respect to principles of biodiversity.
 library(dplyr)
 
 ## Data input and setup 
-Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.env.csv", row.names=1)) # environmental data
-Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/TeamProject/Ponds.rel.csv", row.names=1))
+Ponds.env <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.env.csv", row.names=1)) # environmental data
+Ponds.rel <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.rel.csv", row.names=1))
 
 # env data missing for "HNF279", 189, 190, 191, 236, 237
 
-keep_DNA <- c("BC001-DNA","BC002-DNA","BC003-DNA","BC004-DNA","BC005-DNA","BC010-DNA","BC015-DNA","BC016-DNA","BC018-DNA","BC020-DNA","BC048-DNA","BC049-DNA","BC051-DNA","BC105-DNA","BC108-DNA","BC262-DNA","BCL01-DNA","BCL03-DNA","HNF132-DNA","HNF133-DNA","HNF134-DNA","HNF144-DNA","HNF168-DNA","HNF185-DNA","HNF187-DNA","HNF216-DNA","HNF217-DNA","HNF221-DNA","HNF224-DNA","HNF225-DNA","HNF229-DNA","HNF242-DNA","HNF250-DNA","HNF267-DNA","HNF269-DNA","YSF004-DNA","YSF117-DNA","YSF295-DNA","YSF296-DNA","YSF298-DNA","YSF300-DNA","YSF44-DNA","YSF45-DNA","YSF46-DNA","YSF47-DNA","YSF65-DNA","YSF66-DNA","YSF67-DNA","YSF69-DNA","YSF70-DNA","YSF71-DNA","YSF74-DNA") # "HNF189-DNA","HNF190-DNA","HNF191-DNA","HNF236-DNA","HNF237-DNA","HNF279-DNA")
+
+# select -DNA libraries using grep
+comm <- comm[grep("*-DNA", rownames(comm)), ]
+
+# rename sites by performing replacement of all matches with gsub
+rownames(comm) <- gsub("\\-DNA", "", rownames(comm))
+rownames(comm) <- gsub("_", "", rownames(comm))
+
+# original way to subset by DNA
+keep_DNA <- c("BC001-DNA","BC002-DNA","BC003-DNA","BC004-DNA","BC005-DNA","BC010-DNA","BC015-DNA","BC016-DNA","BC018-DNA","BC020-DNA","BC048-DNA","BC049-DNA","BC051-DNA","BC105-DNA","BC108-DNA","BC262-DNA","BCL01-DNA","BCL03-DNA","HNF132-DNA","HNF133-DNA","HNF134-DNA","HNF144-DNA","HNF168-DNA","HNF185-DNA","HNF187-DNA","HNF216-DNA","HNF217-DNA","HNF221-DNA","HNF224-DNA","HNF225-DNA","HNF229-DNA","HNF242-DNA","HNF250-DNA","HNF267-DNA","HNF269-DNA","YSF004-DNA","YSF117-DNA","YSF295-DNA","YSF296-DNA","YSF298-DNA","YSF300-DNA","YSF44-DNA","YSF45-DNA","YSF46-DNA","YSF47-DNA","YSF65-DNA","YSF66-DNA","YSF67-DNA","YSF69-DNA","YSF70-DNA","YSF71-DNA","YSF74-DNA") 
+# "HNF189-DNA","HNF190-DNA","HNF191-DNA","HNF236-DNA","HNF237-DNA","HNF279-DNA")
 
 total <- Ponds.rel[rownames(Ponds.rel) %in% keep_DNA, ]      # Extract rows from matrix
 row.names(total) <- c("BC001","BC002","BC003","BC004","BC005","BC010","BC015","BC016","BC018","BC020","BC048","BC049","BC051","BC105","BC108","BC262","BCL01","BCL03","HNF132","HNF133","HNF134","HNF144","HNF168","HNF185","HNF187","HNF216","HNF217","HNF221","HNF224","HNF225","HNF229","HNF242","HNF250","HNF267","HNF269","YSF004","YSF117","YSF295","YSF296","YSF298","YSF300","YSF44","YSF45","YSF46","YSF47","YSF65","YSF66","YSF67","YSF69","YSF70","YSF71","YSF74") # "HNF189","HNF190","HNF191","HNF236","HNF237","HNF279")
@@ -171,6 +208,7 @@ env <- apply(Ponds.env[,1:20], 2, function(x) as.numeric(as.character(x))) # get
 row.names(env) <- c("BC001","BC002","BC003","BC004","BC005","BC010","BC015","BC016","BC018","BC020","BC048","BC049","BC051","BC105","BC108","BC262","BCL01","BCL03","HNF132","HNF133","HNF134","HNF144","HNF168","HNF185","HNF187","HNF189","HNF190","HNF191","HNF216","HNF217","HNF221","HNF224","HNF225","HNF229","HNF236","HNF237","HNF242","HNF250","HNF267","HNF269","HNF279","YSF004","YSF117","YSF295","YSF296","YSF298","YSF300","YSF44","YSF45","YSF46","YSF47","YSF65","YSF66","YSF67","YSF69","YSF70","YSF71","YSF74")
 env <- env[1:53,-1] # remove sites with NA; tried na.action=na.exclude(), na.roughfix but didn't work
 env <- env[-34,]
+
 ```
 
 ### i.  Mantel Test
@@ -203,22 +241,28 @@ mantel(OTU.dist,pond.env.dist)
 # Constrained Ordination
 pond.dbrda <- dbrda(total ~ ., as.data.frame(env)) #perform dbRDA
 ordiplot(pond.dbrda)
+
 # first model only intercept
 pond.dbrda.mod0 <- dbrda(total ~ 1, as.data.frame(env)) 
 ordiplot(pond.dbrda.mod0) # no vectors constrained here, so its a simple MDS (PCoA)
+
 # now model with all explanatory variables
 pond.dbrda.mod1 <- dbrda(total ~ ., as.data.frame(env))
+
 # now iterate through all combos of explanatory variables, return model with lowest AIC
 # pond.dbrda <- ordiR2step(pond.dbrda.mod0,pond.dbrda.mod1, permutations = how(nperm = 200))
 # couldnt get ordiR2step to work, error that upper scope cannot be reached
 pond.dbrda <- ordistep(pond.dbrda.mod0,pond.dbrda.mod1, permutations = how(nperm = 200))
+
 # look at model that was selected
 pond.dbrda$call
 pond.dbrda$anova
 ordiplot(pond.dbrda)
+
 # permutation tests to evaluate significance
 permutest(pond.dbrda, permutations=999)
-envfit(pond.dbrda, env[,c()], perm=999)
+envfit(pond.dbrda, env[,c(2,5,13,18)], perm=999)
+
 #calculate explained variation
 pond.dbrda.explainvar1 <- round(pond.dbrda$CCA$eig[1] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
 pond.dbrda.explainvar2 <- round(pond.dbrda$CCA$eig[2] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
@@ -240,16 +284,31 @@ axis(side=3, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
      at=pretty(range(pond.vectors[,1]))*2, labels=pretty(range(pond.vectors[,1])));
 axis(side=4, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
      at=pretty(range(pond.vectors[,2]))*2, labels=pretty(range(pond.vectors[,2])))
+scores(pond.dbrda)
+# code to modify to try and color plots by state park again
+points(total.pcoa$points[1:18,1], total.pcoa$points[1:18,2],
+       pch = 20, cex = 2, bg = "blue", col = "blue"); # BC
+points(total.pcoa$points[19:41,1], total.pcoa$points[19:41,2],
+       pch = 20, cex = 2, bg = "red", col = "red"); # H
+points(total.pcoa$points[42:58,1], total.pcoa$points[42:58,2],
+       pch = 20, cex = 2, bg = "purple", col = "purple");# YW
+legend(x="topright",,legend=c("Brown County", "Hoosier Natl. Forest", "Yellowood"),
+       fill=c("blue", "red","purple"))
 
-## plot output is odd because pond.vectors are values < 1 so they look tiny. is this an error in the code?
 
-## note for Erica to think about -- way to add spec scores like from last week, with a cut off only showing the most correlated OTUs?
+env2 <- env[,c(2,5,13,18)]
+
+## plot output is odd because pond.vectors are values < 1 so they look tiny in comparison to site dbRDA values which are ~100s... is this an error in the code?
+
+## try RDA or NMDS instead of dbRDA, investigate HNF sites as 
+
+## note for Erica to think about -- try to add spec scores to an ordination plot with a cut off only showing the most correlated OTUs?
 ```
 
 > ***Synthesis Answer***: According to the Mantel test, 7% of the variation in pond bacterial communities can be explained by association with the ponds' corresponding environmental variables. This is much lower than what was found with the Doubs river data, but the bacterial OTUs are much more diverse than the fish species in the Doubs. The constrained ordination via dbRDA indicated that the variable "chla" was associated with much of the variation in pond data.
 
 
-## 7) SYNTHESIS
+## 7) Phylogenetic Tree
 
 Work with members of your Team Project to obtain reference sequences for taxa in your study. For microorganisms like the bacteria we worked with above, many people use the ribosomal gene (i.e., 16S rRNA). This has many desirable features, including it is relatively long, highly conserved, and identifies taxa with reasonable resolution. 
 
