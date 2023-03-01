@@ -317,7 +317,7 @@ ggplot()+
 
 ```{r}
 # Constrained Ordination
-pond.dbrda <- dbrda(species_mat ~ ., data = as.data.frame(env_scaled), na.action=na.omit) #perform dbRDA
+pond.dbrda <- dbrda(species_mat ~ ., data = as.data.frame(env_scaled), na.action=na.omit) #perform dbRDA 
 
 # first model only intercept
 pond.dbrda.mod0 <- dbrda(species_mat ~ 1, data = as.data.frame(env_scaled), na.action=na.omit) 
