@@ -1,13 +1,13 @@
 ---
 title: "QB2023_Team_Project: Indiana Pond Bacterial Communities"
-author: "Erica Nadolski, Z620: Quantitative Biodiversity, Indiana University"
+author: "Erica Nadolski and Joy O'Brien, Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin = 2.54cm
 editor_options: 
   chunk_output_type: console
 ---
-### Data input and setup 
+### environment setup 
 ```{r}
 package.list <- c("picante",'ape', 'seqinr', "vegan","fossil","reshape",
                   "devtools","BiocManager","ineq","labdsv",
@@ -25,7 +25,7 @@ for (package in package.list) {
 source("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/bin/MothurTools.R")
 ```
 
-### Pond Environmental data
+### Data input - Pond Environmental data
 ```{r}
 Ponds.env <- as.data.frame(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
 
@@ -47,7 +47,7 @@ env <- env[1:53,-1]
 env <- env[-34,]
 ```
 
-### Site by species matrix
+### Data input - Site by species matrix
 ```{r}
 # read in dataset 
 Ponds.rel <- as.data.frame(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.rel.csv", row.names=1, header = T, sep = ",", dec = ".")) 
@@ -178,13 +178,13 @@ axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
 abline(h = 0, v = 0, lty = 3);
 box(lwd = 2);                                        
 points(total.pcoa$points[1:18,1], total.pcoa$points[1:18,2],
-       pch = 20, cex = 2, bg = "blue", col = "blue"); # BC
+       pch = 20, cex = 2, bg = "red", col = "red"); # BC
 points(total.pcoa$points[19:41,1], total.pcoa$points[19:41,2],
-       pch = 20, cex = 2, bg = "red", col = "red"); # H
+       pch = 20, cex = 2, bg = "green", col = "green"); # H
 points(total.pcoa$points[42:58,1], total.pcoa$points[42:58,2],
-       pch = 20, cex = 2, bg = "purple", col = "purple");# YW
+       pch = 20, cex = 2, bg = "blue", col = "blue");# YW
 legend(x="topleft",,legend=c("Brown County", "Hoosier Natl. Forest", "Yellowood"),
-       fill=c("blue", "red","purple"))
+       fill=c("red","green","blue"))
 
 ```
 
@@ -258,6 +258,9 @@ species.scores$species <- rownames(species.scores)
 # filter species ordination scores with the most abundant species 
 species.scores.abundant <- filter(species.scores, species %in% selected) 
 
+# shortening names
+species.scores.abundant$name    <- gsub("000*", "" , rownames(species.scores.abundant))
+
 # permutation tests with factors (RNA/DNA and location )
 distance  <- vegdist(species_mat, "bray")
 set.seed(42)
@@ -284,23 +287,9 @@ ggplot()+
   geom_segment(data = arrows.p, aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), 
                arrow = arrow(length = unit(.2, "cm")*arrows.p$R),  color = "grey")+
   geom_text(data = arrows.p, aes(x = NMDS1, y = NMDS2, label = env), size=5)+
-  geom_text_repel(data = species.scores.abundant, aes(x = NMDS1, y = NMDS2, label = species), size = 3)
+  geom_text_repel(data = species.scores.abundant, aes(x = NMDS1, y = NMDS2, label = name), size = 3)# add abundant species scores
 
 # try to fix the overlaps in text library("ggrepel")   
-
-# add abundant species scores
-ggplot()+ 
-  geom_hline(yintercept = 0, linetype = "dashed")+
-  geom_vline(xintercept = 0, linetype = "dashed")+
-  geom_point(data = data.scores, mapping = aes(x = NMDS1, y = NMDS2, colour = location, shape = source), size=3, alpha = .6) +
-  theme_bw()+
-  coord_equal()+
-  geom_segment(data = arrows.p, aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), 
-               arrow = arrow(length = unit(.2, "cm")*arrows.p$R),  color = "grey")+
-  geom_text_repel(data = arrows.p, aes(x = NMDS1, y = NMDS2, label = env), size=5)+
-  geom_text_repel(data = species.scores.abundant, aes(x = NMDS1, y = NMDS2, label = species), size = 3)
-
-
 # could test for correlation of env. variables, to remove correlates and streamline analysis
   # plot(env_data)
 
