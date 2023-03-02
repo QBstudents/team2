@@ -22,12 +22,12 @@ for (package in package.list) {
   }
 }
 
-source("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/bin/MothurTools.R")
+source("/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/bin/MothurTools.R")
 ```
 
 ### Data input - Pond Environmental data
 ```{r}
-Ponds.env <- as.data.frame(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
+Ponds.env <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
 
 Ponds.env$site    <- rownames(Ponds.env)
 
@@ -50,7 +50,7 @@ env <- env[-34,]
 ### Data input - Site by species matrix
 ```{r}
 # read in dataset 
-Ponds.rel <- as.data.frame(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.rel.csv", row.names=1, header = T, sep = ",", dec = ".")) 
+Ponds.rel <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.rel.csv", row.names=1, header = T, sep = ",", dec = ".")) 
 
 # Canan way to subset 
 #Ponds.rel$site    <- gsub("-.*", "" , rownames(Ponds.rel))
@@ -75,44 +75,67 @@ row.names(active) <- c("B001","B003","B004","B005","B015","B016","B018","B020","
 ```
 
 
-#### code to subset sequencing libraries by grep
+#### code to relativize data & wrangle data
 ```{r, echo=FALSE}
-# select -DNA libraries using grep
-comm <- comm[grep("*-DNA", rownames(comm)), ]
+# data 
+Ponds.env <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
+Raw.count <- as.matrix(read.csv("/Users/joyobrien/GitHub/team2/Ponds97.csv",   row.names=1, header = T, sep = ",", dec = "."))
 
-# rename sites by performing replacement of all matches with gsub
-rownames(comm) <- gsub("\\-DNA", "", rownames(comm))
-rownames(comm) <- gsub("_", "", rownames(comm))
-```
+# convert raw counts to relative counts 
+Rel.count <- as.data.frame(decostand(Raw.count, method = "total"))
 
+# most abundant species
+spscore  <- sort(c(colSums(Rel.count)))
+abundant <- as.data.frame(tail(spscore, 20))
+selected <- rownames(abundant)
 
-### Scatter plot of some environmental variables to look at variation
-```{r}
-env <- as.data.frame(Ponds.env)
+# add a source genetic material column (active/total communities)
+# also add a site column to easily merge with environmental data 
+Rel.count$site    <- gsub("-.*", "" , rownames(Raw.count))
+Rel.count$source  <- gsub(".*-", "" , rownames(Raw.count))
 
-env <- env %>% mutate_at(c("lat","long","Elevation","Diameter","Depth","Cal_Volume","ORP","Temp","SpC","DO","TDS","Salinity","pH","Color","chla","DOC","DON","canopy","TP"), as.numeric)
+# add a site column to environmental data 
+Ponds.env$site    <- rownames(Ponds.env)
+  
+# collect all data in one table so everything matches 
+allData <- left_join(Rel.count, Ponds.env, by = "site")
 
-str(env)
+# for downstream analysis we need species matrix, factor columns (location and source community)
+species_mat <- allData[,1:34059] # heatmap, PCoA
+meta_data   <- allData[,34060:34081]
+env_data    <- meta_data[,4:22]  
 
-diam <- env[1:56,"Diameter"]
-max(diam)
-min(diam)
-mean(diam)
-
-depth <- env[1:56,"Depth"]
-max(depth)
-min(depth)
-mean(depth)
-
-p <- ggplot(env, aes(x=Diameter, y=Depth, label=X))
-p + geom_point(aes(colour = factor(Location))) + geom_text(hjust=0, vjust=0, size=2) + scale_x_continuous(n.breaks = 10)
+# standardize environmental data 
+env_scaled  <- as.data.frame(scale(env_data, center = T))
 ```
 
 
 ### PCA of Environmental Variables to visualize variation
 
 ```{r pressure, echo=FALSE}
-env.pca = prcomp(env)
+
+#****Just need to incorporate the env labels on the PCA points******
+install.packages("ggfortify")
+library(ggfortify)
+
+env.pca = prcomp(env_data)
+env.pca = cmdscale(env_data, na.omit())
+
+# Need to load another version of the env matrix that contains metadata 
+# DormDecay_env
+# Subset the first two columns of this matrix (Location and Sample ID so we can visualize location on PCA)
+locsamp <- DormDecay_env[, 1:2]
+# Removing sites that do not have environmental data
+locsamp.edit <- subset(locsamp[1:33, ])
+locsamp.edit.2 <- subset(locsamp[35:53, ])
+# Trying to merge the datasets
+locsamp.final <- merge.data.frame(locsamp.edit, locsamp.edit.2)
+
+# Plotting the PCA
+autoplot(env.pca, data = locsamp, colour = "Location", label = TRUE, label.size = 3) # there is no metadata within the env data 
+
+
+# Referencing: https://cran.r-project.org/web/packages/ggfortify/vignettes/plot_pca.html
 
 ```
 
@@ -121,32 +144,95 @@ env.pca = prcomp(env)
 
 ### Alpha Diversity 
 ```{r}
-### Rank abundance plot of site 1 
-ponds.rac <- as.numeric(RAC(Ponds97[1,]))
+
+# Calculating species richness across all sites
+spec <- specnumber(species_mat)
+hist(spec)
+summary(spec)
+
+# Calculate Good's coverage
+# Function for Good's coverage
+C <- function(x = ""){
+  1 - rowSums(x == 1) / rowSums(x)
+}
+C <- C(species_mat)
+summary(C) 
+
+
+# Keep running into errors here 
+# Calculate Richness and Shannon Diversity (box plots and it wouldnt be ponds it would be sites)
+library(vegan)
+install.packages("vegan")
+# Calculating observed richness of relative abundance
+specnumber <- specnumber(Rel.count)
+spec <- as.matrix(specnumber)
+# Merge specnumber data with metadata so we can make a color coded ggplot
+specmat <- merge(spec, meta_data)
+
+ggplot(specmat, aes(x = source, y = V1, fill = Location)) +
+         geom_boxplot()
+# http://www.sthda.com/english/wiki/ggplot2-box-plot-quick-start-guide-r-software-and-data-visualization
+# Converting to presence absence
+PAM <- decostand(x = species_mat, method = "pa")
+# Calculating Shannon diversity
+H <- diversity(species_mat, "shannon")
+# Calculating Simspon metric
+Simp <- diversity(Raw.count, "simpson")
+
+# Shannon Diversity
+ShanH <- function(x = ""){
+  H = 0
+  for (n_i in x){
+    if(n_i > 0){
+      p = n_i / sum(x)
+      H = H - p*log(p)
+    }
+  }
+  return(H)
+}
+ShanH(Rel.count)
+vegan::diversity(species_mat, index="shannon")
+# Simpson metric
+SimpD <- function(x = ""){
+  D = 0
+  N = sum(x)
+  for (n_i in x){
+    D = D + (n_i^2) /(N^2)
+  }
+  return(D)
+}
+
+# Rank Abundance Curve
+#Making a RAC with pond data
+
+ponds.rac <- as.numeric(RAC(Pond97[1, ]))
 length(ponds.rac)
 max(ponds.rac)
 min(ponds.rac)
 plot.new()
 pond.ranks <- as.vector(seq(1, length(ponds.rac)))
-plot(pond.ranks, log(ponds.rac), type="p", axes=F,
-     xlab="Rank in abundance", ylab="Abundance",
-     las=1, cex.lab=1.4, cex.axis=1.25);
-box();
-axis(side=1, labels=T, cex.axis=1.25);
-axis(side=2, las=1, cex.axis=1.25,
-     labels= c(1,10,100,1000,100000), at=log(c(1,10,100,1000,10000)))
+opar <- par(no.readonly = TRUE)
+par(mar = c(5.1, 5.1, 4.1, 2.1))
+plot(pond.ranks, log(ponds.rac), type = "p", axes =F,
+     xlab = "Rank in abundance", ylab = "Abundance", 
+     las = 1, cex.lab = 1.4, cex.axis = 1.25);
+
+box()
+axis(side = 1, labels = T, cex.axis = 1.25)
+axis(side = 2, las = 1, cex.axis = 1.25, 
+   labels = c(1, 10, 100, 1000, 10000), at = log(c(1, 10, 100, 1000, 10000)))
+
 ```
 
 ### Beta Diversity - Visualization
 
 ```{r}
+library(viridis)
 # Bray Curtis resemblance matrix
-total.db <- vegdist(total, method="bray")
+total.db <- vegdist(species_mat, method="bray")
 
 # Heatmap 
-order.p <- rev(attr(total.db, "Labels"))
-
-levelplot(as.matrix(total.db)[,order.p], aspect="iso", col.regions=inferno,
+levelplot(as.matrix(total.db), aspect="iso", col.regions=inferno,
           xlab="Pond Site", ylab= "Pond Site", scales=list(cex=0.5), 
           main= "Bray-Curtis Distance")
 
@@ -197,8 +283,9 @@ legend(x="topleft",,legend=c("Brown County", "Hoosier Natl. Forest", "Yellowood"
 
 ```{r}
 # define matrices
-OTU.dist <- vegdist(total, method="bray")
-pond.env.dist <- vegdist(env, method="euclid")
+# input right matrices 
+OTU.dist <- vegdist(species_mat, method="bray")
+pond.env.dist <- vegdist(env_data, method="euclid", na.rm = TRUE)
 
 # mantel test
 mantel(OTU.dist,pond.env.dist)
@@ -206,11 +293,13 @@ mantel(OTU.dist,pond.env.dist)
 
 ### hypothesis testing - nonmetric multidimensional scaling NMDS
 ```{r}
+# NMDS needs to be updated with the newer data
+
 ## compute species scores on the NMDS axes, can add important spec scores (indicator species) to ordination plot 
 
 # data 
-Ponds.env <- as.data.frame(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
-Raw.count <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds97.csv",   row.names=1, header = T, sep = ",", dec = "."))
+Ponds.env <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
+Raw.count <- as.matrix(read.csv("/Users/joyobrien/GitHub/team2/Ponds97.csv",   row.names=1, header = T, sep = ",", dec = "."))
 
 # convert raw counts to relative counts 
 Rel.count <- as.data.frame(decostand(Raw.count, method = "total"))
@@ -295,78 +384,6 @@ ggplot()+
 
 ```
 
-### Constrained Ordination - distance based redundancy analysis dbRDA
-1. create an environmental matrix of the pond data using forward and reverse selection of variables
-2. conduct a redundancy analysis on the bacterial assemblages
-3. use a permutation test to determine the significance of the constrained analysis,
-4. use a permutation test to determine the correlation of each environmental factor on the constrained axes,
-5. calculate the explained variation on the first and second constrained axes,
-6. plot the constrained ordination results including labeled points for each site, and
-7. add vectors that demonstrate the influence of each environmental factor the constrained ordination.   
-
-```{r}
-# Constrained Ordination
-pond.dbrda <- dbrda(species_mat ~ ., data = as.data.frame(env_scaled), na.action=na.omit) #perform dbRDA 
-
-# first model only intercept
-pond.dbrda.mod0 <- dbrda(species_mat ~ 1, data = as.data.frame(env_scaled), na.action=na.omit) 
-
-# now model with all explanatory variables
-pond.dbrda.mod1 <- dbrda(species_mat ~ ., data = as.data.frame(env_scaled), na.action=na.omit)
-
-# now iterate through all combos of explanatory variables, return model with lowest AIC
-pond.dbrda <- ordiR2step(pond.dbrda.mod0,pond.dbrda.mod1, permutations = how(nperm = 999))
-
-# look at model that was selected
-pond.dbrda$call
-pond.dbrda$anova
-ordiplot(pond.dbrda)
-
-# permutation tests to evaluate significance
-permutest(pond.dbrda, permutations=999)
-envfit(pond.dbrda, env[,c(2,5,13,18)], perm=999)
-
-#calculate explained variation
-pond.dbrda.explainvar1 <- round(pond.dbrda$CCA$eig[1] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
-pond.dbrda.explainvar2 <- round(pond.dbrda$CCA$eig[2] / sum(c(pond.dbrda$CCA$eig, pond.dbrda$CA$eig)), 3) *100
-
-# create vectors to plot
-pond.vectors <- scores(pond.dbrda,display="bp")
-# now plot selected model, define plot parameters
-plot(scores(pond.dbrda, display="wa"), xlab=paste("dbRDA 1 (",pond.dbrda.explainvar1,"%)", sep=""), 
-     ylab=paste("dbRDA 2 (", pond.dbrda.explainvar2, "%)", sep=""),
-     pch=16, cex=2.0, type="n", cex.lab=1.5, cex.axis=1.2, axes=FALSE);
-axis(side=1, labels=T, lwd.ticks=2, cex.axis=1.2,las=1);
-axis(side=2, labels=T, lwd.ticks=2, cex.axis=1.2,las=1);
-abline(h=0,v=0,lty=3);
-box(lwd=2);
-points(scores(pond.dbrda,display="wa"), pch=19,cex=3,bg="gray",col="gray");
-text(scores(pond.dbrda,display="wa"),labels=row.names(scores(pond.dbrda,display="wa")));
-arrows(0,0,pond.vectors[,1], pond.vectors[,2], lwd=2, lty=1, length=0.2, col="red");
-text(pond.vectors[,1], pond.vectors[,2], pos=3,labels=row.names(pond.vectors));
-axis(side=3, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
-     at=pretty(range(pond.vectors[,1]))*2, labels=pretty(range(pond.vectors[,1])));
-axis(side=4, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
-     at=pretty(range(pond.vectors[,2]))*2, labels=pretty(range(pond.vectors[,2])))
-scores(pond.dbrda)
-# code to modify to try and color plots by state park again
-points(total.pcoa$points[1:18,1], total.pcoa$points[1:18,2],
-       pch = 20, cex = 2, bg = "blue", col = "blue"); # BC
-points(total.pcoa$points[19:41,1], total.pcoa$points[19:41,2],
-       pch = 20, cex = 2, bg = "red", col = "red"); # H
-points(total.pcoa$points[42:58,1], total.pcoa$points[42:58,2],
-       pch = 20, cex = 2, bg = "purple", col = "purple");# YW
-legend(x="topright",,legend=c("Brown County", "Hoosier Natl. Forest", "Yellowood"),
-       fill=c("blue", "red","purple"))
-
-#env2 <- env[,c(2,5,13,18)]
-
-## plot output is odd because pond.vectors are values < 1 so they look tiny in comparison to site dbRDA values which are ~100s
-## try RDA or NMDS instead of dbRDA, investigate HNF sites as outliers
-
-```
-
-
 ## 7) Phylogenetic Tree
 
 Obtain reference sequences for taxa in your study, for microorganisms, ribosomal gene (i.e., 16S rRNA).
@@ -376,6 +393,8 @@ Obtain reference sequences for taxa in your study, for microorganisms, ribosomal
 4. Based on the decisions above and the output, does your tree jibe with what is known about the evolutionary history of your organisms? If not, why? Is there anything you could do differently that would improve your tree, especially with regard to future analyses done by your team?
 
 ```{r}
+
+# Phylogenetic tree 
 # set up packages
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -420,11 +439,11 @@ add.scale.bar(cex=0.7)
 ### loading week 8 data
 
 ```{r}
-env <- read.table("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/data/20130801_PondDataMod.csv",sep=",",header=TRUE)
+env <- read.table("/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/20130801_PondDataMod.csv",sep=",",header=TRUE)
 env <- na.omit(env)
 
 # site by species
-comm <- read.otu(shared = "/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.shared", cutoff="1")
+comm <- read.otu(shared = "/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.shared", cutoff="1")
 
 # select DNA using grep
 comm <- comm[grep("*-DNA", rownames(comm)), ]
@@ -440,19 +459,19 @@ comm <- comm[rownames(comm) %in% env$Sample_ID, ]
 comm <- comm[ , colSums(comm) > 0]
 
 # import taxonomy
-tax <- read.tax(taxonomy = "/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.1.cons.taxonomy")
+tax <- read.tax(taxonomy = "/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.1.cons.taxonomy")
 ```
 
 ### Alignment 
 ```{r}
 # import alignment file
-ponds.cons <- read.alignment(file = "/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.1.rep.fasta", format="fasta")
+ponds.cons <- read.alignment(file = "/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.1.rep.fasta", format="fasta")
 
 # rename OTUs in fasta
 ponds.cons$nam <- gsub("\\|.*$", "", gsub("^.*?\t", "", ponds.cons$nam))
 
 # import outgroup
-outgroup <- read.alignment(file="/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/9.PhyloCom/data/methanosarcina.fasta", format="fasta")
+outgroup <- read.alignment(file="/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/methanosarcina.fasta", format="fasta")
 
 #convert alignment files to DNAbin and combine
 DNAbin <- rbind(as.DNAbin(outgroup),as.DNAbin(ponds.cons))
