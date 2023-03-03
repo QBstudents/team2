@@ -14,72 +14,20 @@ package.list <- c("picante",'ape', 'seqinr', "vegan","fossil","reshape",
                   "matrixStats","pROC",'phylobase', 'adephylo', 'geiger',
                   'stats', 'RColorBrewer', 'caper', 'phylolm', 'pmc', 
                   'ggplot2', 'tidyr', 'dplyr', 'phangorn', 'pander', 
-                  'phylogram', 'dendextend', "tidyverse")
+                  'phylogram', 'dendextend', "tidyverse", "ggfortify")
 for (package in package.list) {
   if (!require(package, character.only=TRUE, quietly=TRUE)) {
     install.packages(package)
     library(package, character.only=TRUE)
   }
 }
-
-source("/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/bin/MothurTools.R")
 ```
 
-### Data input - Pond Environmental data
-```{r}
-Ponds.env <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
-
-Ponds.env$site    <- rownames(Ponds.env)
-
-# number of sites
-nrow(Ponds.env) 
-
-# get data to numeric type
-env <- apply(Ponds.env[,1:20], 2, function(x) as.numeric(as.character(x))) 
-
-# apply row names
-row.names(env) <- c("B001","B002","B003","B004","B005","B010","B015","B016","B018","B020","B048","B049","B051","B105","B108","B262","BL01","BL03","H132","H133","H134","H144","H168","H185","H187","H189","H190","H191","H216","H217","H221","H224","H225","H229","H236","H237","H242","H250","H267","H269","H279","Y004","Y117","Y295","Y296","Y298","Y300","Y44","Y45","Y46","Y47","Y65","Y66","Y67","Y69","Y70","Y71","Y74")
-
-# env data missing for "HNF189","HNF190","HNF191","HNF236","HNF237","HNF279"
-# remove sites with NA
-# tried na.action=na.exclude(), na.roughfix but didn't work
-env <- env[1:53,-1] 
-env <- env[-34,]
-```
-
-### Data input - Site by species matrix
-```{r}
-# read in dataset 
-Ponds.rel <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.rel.csv", row.names=1, header = T, sep = ",", dec = ".")) 
-
-# Canan way to subset 
-#Ponds.rel$site    <- gsub("-.*", "" , rownames(Ponds.rel))
-#Ponds.rel$source  <- gsub(".*-", "" , rownames(Ponds.rel))
-
-# subsetting total (DNA) and active (cDNA) libraries for each site
-DNA <- c("BC001-DNA","BC002-DNA","BC003-DNA","BC004-DNA","BC005-DNA","BC010-DNA","BC015-DNA","BC016-DNA","BC018-DNA","BC020-DNA","BC048-DNA","BC049-DNA","BC051-DNA","BC105-DNA","BC108-DNA","BC262-DNA","BCL01-DNA","BCL03-DNA","HNF132-DNA","HNF133-DNA","HNF134-DNA","HNF144-DNA","HNF168-DNA","HNF185-DNA","HNF187-DNA","HNF216-DNA","HNF217-DNA","HNF221-DNA","HNF224-DNA","HNF225-DNA","HNF229-DNA","HNF242-DNA","HNF250-DNA","HNF267-DNA","HNF269-DNA","YSF004-DNA","YSF117-DNA","YSF295-DNA","YSF296-DNA","YSF298-DNA","YSF300-DNA","YSF44-DNA","YSF45-DNA","YSF46-DNA","YSF47-DNA","YSF65-DNA","YSF66-DNA","YSF67-DNA","YSF69-DNA","YSF70-DNA","YSF71-DNA","YSF74-DNA") 
-# removed "HNF189-DNA","HNF190-DNA","HNF191-DNA","HNF236-DNA","HNF237-DNA","HNF279-DNA")
-
-cDNA <- c("BC001-cDNA","BC002-cDNA","BC003-cDNA","BC004-cDNA","BC005-cDNA","BC010-cDNA","BC015-cDNA","BC016-cDNA","BC018-cDNA","BC020-cDNA","BC048-cDNA","BC049-cDNA","BC051-cDNA","BC105-cDNA","BC108-cDNA","BC262-cDNA","BCL01-cDNA","BCL03-cDNA","HNF132-cDNA","HNF133-cDNA","HNF134-cDNA","HNF144-cDNA","HNF168-cDNA","HNF185-cDNA","HNF187-cDNA","HNF189-cDNA","HNF190-cDNA","HNF191-cDNA","HNF216-cDNA","HNF217-cDNA","HNF221-cDNA","HNF224-cDNA","HNF225-cDNA","HNF229-cDNA","HNF236-cDNA","HNF237-cDNA","HNF242-cDNA","HNF250-cDNA","HNF267-cDNA","HNF269-cDNA","HNF279-cDNA","YSF004-cDNA","YSF117-cDNA","YSF295-cDNA","YSF296-cDNA","YSF298-cDNA","YSF300-cDNA","YSF44-cDNA","YSF45-cDNA","YSF46-cDNA","YSF47-cDNA","YSF65-cDNA","YSF66-cDNA","YSF67-cDNA","YSF69-cDNA","YSF70-cDNA","YSF71-cDNA","YSF74-cDNA")
-#length 55
-
-# Extract rows from matrix
-total <- Ponds.rel[rownames(Ponds.rel) %in% DNA, ]     
-active <- Ponds.rel[rownames(Ponds.rel) %in% cDNA, ]  
-
-# apply shortened names
-row.names(total) <- c("B001","B002","B003","B004","B005","B010","B015","B016","B018","B020","B048","B049","B051","B105","B108","B262","BL01","BL03","H132","H133","H134","H144","H168","H185","H187","H216","H217","H221","H224","H225","H229","H242","H250","H267","H269","Y004","Y117","Y295","Y296","Y298","Y300","Y44","Y45","Y46","Y47","Y65","Y66","Y67","Y69","Y70","Y71","Y74") 
-# removed "H189","H190","H191","H236","H237","H279",
-
-row.names(active) <- c("B001","B003","B004","B005","B015","B016","B018","B020","B048","B049","B051","B105","B108","B262","BL01","BL03","H132","H133","H134","H144","H168","H185","H187","H189","H190","H191","H216","H217","H224","H225","H229","H236","H237","H242","H250","H267","H269","H279","Y004","Y117","Y295","Y296","Y298","Y300","Y44","Y45","Y46","Y47","Y65","Y66","Y67","Y69","Y70","Y71","Y74")
-```
-
-
-#### code to relativize data & wrangle data
+#### Input and wrangle data
 ```{r, echo=FALSE}
 # data 
-Ponds.env <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
-Raw.count <- as.matrix(read.csv("/Users/joyobrien/GitHub/team2/Ponds97.csv",   row.names=1, header = T, sep = ",", dec = "."))
+Ponds.env <- as.data.frame(read.csv("/Users/ericanadolski/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
+Raw.count <- as.matrix(read.csv("/Users/ericanadolski/GitHub/team2/Ponds97.csv",   row.names=1, header = T, sep = ",", dec = "."))
 
 # convert raw counts to relative counts 
 Rel.count <- as.data.frame(decostand(Raw.count, method = "total"))
@@ -113,30 +61,9 @@ env_scaled  <- as.data.frame(scale(env_data, center = T))
 ### PCA of Environmental Variables to visualize variation
 
 ```{r pressure, echo=FALSE}
-
-#****Just need to incorporate the env labels on the PCA points******
-install.packages("ggfortify")
-library(ggfortify)
-
-env.pca = prcomp(env_data)
-env.pca = cmdscale(env_data, na.omit())
-
-# Need to load another version of the env matrix that contains metadata 
-# DormDecay_env
-# Subset the first two columns of this matrix (Location and Sample ID so we can visualize location on PCA)
-locsamp <- DormDecay_env[, 1:2]
-# Removing sites that do not have environmental data
-locsamp.edit <- subset(locsamp[1:33, ])
-locsamp.edit.2 <- subset(locsamp[35:53, ])
-# Trying to merge the datasets
-locsamp.final <- merge.data.frame(locsamp.edit, locsamp.edit.2)
-
-# Plotting the PCA
-autoplot(env.pca, data = locsamp, colour = "Location", label = TRUE, label.size = 3) # there is no metadata within the env data 
-
-
-# Referencing: https://cran.r-project.org/web/packages/ggfortify/vignettes/plot_pca.html
-
+env.pca = prcomp(na.omit(meta_data[,4:22]), scale. = TRUE)
+autoplot(env.pca, data = na.omit(meta_data), colour = 'Location')+
+  theme_bw()
 ```
 
 > ***Dataset Note***: We are using a Lennon lab dataset of microbial DNA and cDNA extracted from local ponds. There are 58 pond sites, and 34059 species (OTUs) across all the sites. There is high variance in abundance and evenness across all of the sites; based on exploratory rank abundance curves, there is high abundance of a few OTUs and a long tail of low-abundance OTUs.
@@ -144,68 +71,17 @@ autoplot(env.pca, data = locsamp, colour = "Location", label = TRUE, label.size 
 
 ### Alpha Diversity 
 ```{r}
-
-# Calculating species richness across all sites
-spec <- specnumber(species_mat)
-hist(spec)
-summary(spec)
-
-# Calculate Good's coverage
-# Function for Good's coverage
-C <- function(x = ""){
-  1 - rowSums(x == 1) / rowSums(x)
-}
-C <- C(species_mat)
-summary(C) 
-
-
-# Keep running into errors here 
-# Calculate Richness and Shannon Diversity (box plots and it wouldnt be ponds it would be sites)
-library(vegan)
-install.packages("vegan")
-# Calculating observed richness of relative abundance
-specnumber <- specnumber(Rel.count)
-spec <- as.matrix(specnumber)
-# Merge specnumber data with metadata so we can make a color coded ggplot
-specmat <- merge(spec, meta_data)
-
-ggplot(specmat, aes(x = source, y = V1, fill = Location)) +
-         geom_boxplot()
-# http://www.sthda.com/english/wiki/ggplot2-box-plot-quick-start-guide-r-software-and-data-visualization
-# Converting to presence absence
-PAM <- decostand(x = species_mat, method = "pa")
-# Calculating Shannon diversity
-H <- diversity(species_mat, "shannon")
-# Calculating Simspon metric
-Simp <- diversity(Raw.count, "simpson")
-
-# Shannon Diversity
-ShanH <- function(x = ""){
-  H = 0
-  for (n_i in x){
-    if(n_i > 0){
-      p = n_i / sum(x)
-      H = H - p*log(p)
-    }
-  }
-  return(H)
-}
-ShanH(Rel.count)
-vegan::diversity(species_mat, index="shannon")
-# Simpson metric
-SimpD <- function(x = ""){
-  D = 0
-  N = sum(x)
-  for (n_i in x){
-    D = D + (n_i^2) /(N^2)
-  }
-  return(D)
-}
-
 # Rank Abundance Curve
-#Making a RAC with pond data
 
-ponds.rac <- as.numeric(RAC(Pond97[1, ]))
+RAC <- function(x="")+{
+  x.ab = x[x > 0]
+  x.ab.ranked = x.ab[order(x.ab, decreasing=TRUE)]
+  as.data.frame(lapply(x.ab.ranked, unlist))
+  return(x.ab.ranked)
+}
+
+# run RAC function
+ponds.rac <- as.numeric(RAC(species_mat[1, ]))
 length(ponds.rac)
 max(ponds.rac)
 min(ponds.rac)
@@ -216,11 +92,44 @@ par(mar = c(5.1, 5.1, 4.1, 2.1))
 plot(pond.ranks, log(ponds.rac), type = "p", axes =F,
      xlab = "Rank in abundance", ylab = "Abundance", 
      las = 1, cex.lab = 1.4, cex.axis = 1.25);
+box();
+axis(side = 1, labels = T, cex.axis = 1.25);
+axis(side = 2, las = 1, cex.axis = 1.25, labels = c(1, 10, 100, 1000, 10000), at = log(c(1, 10, 100, 1000, 10000)))
 
-box()
-axis(side = 1, labels = T, cex.axis = 1.25)
-axis(side = 2, las = 1, cex.axis = 1.25, 
-   labels = c(1, 10, 100, 1000, 10000), at = log(c(1, 10, 100, 1000, 10000)))
+
+## create new dataframe 
+alpha_metrics <- data.frame(meta_data[,1:3])
+
+## species richness 
+alpha_metrics$richness <- specnumber(species_mat)
+
+## Shannon's diversity
+alpha_metrics$ShanH <- vegan::diversity(species_mat, index="shannon")
+
+## inverse simpsons
+alpha_metrics$invS <- vegan::diversity(species_mat, index="invsimpson")
+
+ggplot(alpha_metrics, aes(x=source, y=richness, fill=Location))+ 
+  geom_boxplot()+
+  labs(title="Indiana Pond Species Richness",x="Source Genetic Material", y = "Richness")+
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5, position=position_dodge(0.75))+
+  theme_classic()
+
+ggplot(alpha_metrics, aes(x=source, y=ShanH, fill=Location))+ 
+  geom_boxplot()+
+  labs(title="Indiana Pond Shannon Diversity",x="Source Genetic Material", y = "Shannon's H")+
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5, position=position_dodge(0.75))+
+  theme_classic()
+
+ggplot(alpha_metrics, aes(x=source, y=invS, fill=Location))+ 
+  geom_boxplot()+
+  labs(title="Indiana Pond Inverse Simpson",x="Source Genetic Material", y = "Inverse Simpson")+
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5, position=position_dodge(0.75))+
+  theme_classic()
+
+mean(alpha_metrics$richness)
+mean(alpha_metrics$ShanH)
+mean(alpha_metrics$invS)
 
 ```
 
@@ -276,12 +185,9 @@ legend(x="topleft",,legend=c("Brown County", "Hoosier Natl. Forest", "Yellowood"
 
 
 ### Beta Diversity - Hypothesis Testing 
-
 ### Mantel Test
-1. create distance matrices for pond communities and environmental factors, and
-2. use a Mantel test to test the hypothesis that pond assemblages are correlated with pond environmental variables.
-
 ```{r}
+# Mantel test to test the hypothesis that pond assemblages are correlated with pond environmental variables.
 # define matrices
 # input right matrices 
 OTU.dist <- vegdist(species_mat, method="bray")
@@ -293,41 +199,6 @@ mantel(OTU.dist,pond.env.dist)
 
 ### hypothesis testing - nonmetric multidimensional scaling NMDS
 ```{r}
-# NMDS needs to be updated with the newer data
-
-## compute species scores on the NMDS axes, can add important spec scores (indicator species) to ordination plot 
-
-# data 
-Ponds.env <- as.data.frame(read.csv("/Users/joyobrien/GitHub/team2/Ponds.env.csv", row.names=1, header = T, sep = ",", dec = ".")) 
-Raw.count <- as.matrix(read.csv("/Users/joyobrien/GitHub/team2/Ponds97.csv",   row.names=1, header = T, sep = ",", dec = "."))
-
-# convert raw counts to relative counts 
-Rel.count <- as.data.frame(decostand(Raw.count, method = "total"))
-
-# add a source genetic material column (active/total communities)
-# also add a site column to easily merge with environmental data 
-Rel.count$site    <- gsub("-.*", "" , rownames(Raw.count))
-Rel.count$source  <- gsub(".*-", "" , rownames(Raw.count))
-
-# add a site column to environmental data 
-Ponds.env$site    <- rownames(Ponds.env)
-
-# most abundant species
-spscore  <- sort(c(colSums(Rel.count)))
-abundant <- as.data.frame(tail(spscore, 20))
-selected <- rownames(abundant)
-  
-# collect all data in one table so everything matches 
-allData <- left_join(Rel.count, Ponds.env, by = "site")
-
-# for downstream analysis we need species matrix, factor columns (location and source community)
-species_mat <- allData[,1:34059]
-meta_data   <- allData[,34060:34081]
-env_data    <- meta_data[,4:22]  
-
-# standardize environmental data 
-env_scaled  <- as.data.frame(scale(env_data, center = T))
-
 #NMDS ordination 
 set.seed(123456) #set seed is to fix the random number generator so you get the same results 
 #each time when you run the tests 
@@ -376,292 +247,7 @@ ggplot()+
   geom_segment(data = arrows.p, aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2), 
                arrow = arrow(length = unit(.2, "cm")*arrows.p$R),  color = "grey")+
   geom_text(data = arrows.p, aes(x = NMDS1, y = NMDS2, label = env), size=5)+
-  geom_text_repel(data = species.scores.abundant, aes(x = NMDS1, y = NMDS2, label = name), size = 3)# add abundant species scores
-
-# try to fix the overlaps in text library("ggrepel")   
-# could test for correlation of env. variables, to remove correlates and streamline analysis
-  # plot(env_data)
+  geom_text(data = species.scores.abundant, aes(x = NMDS1, y = NMDS2, label = name), size = 3)# add abundant species scores
 
 ```
-
-## 7) Phylogenetic Tree
-
-Obtain reference sequences for taxa in your study, for microorganisms, ribosomal gene (i.e., 16S rRNA).
-1. Download sequences and create a properly formatted fasta file.
-2. Align the sequences and confirm that you have a good alignment. 
-3. Choose a substitution model and make a tree of your choice. 
-4. Based on the decisions above and the output, does your tree jibe with what is known about the evolutionary history of your organisms? If not, why? Is there anything you could do differently that would improve your tree, especially with regard to future analyses done by your team?
-
-```{r}
-
-# Phylogenetic tree 
-# set up packages
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("msa")
-
-library(msa)
-library(Biostrings)
-
-# import taxonomy info for OTUs
-taxa <- as.matrix(read.csv("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/8.PhyloTraits/40taxa.csv", col.names= c("Otu","abundance","phylum","class","order","family","genus"), header=FALSE))
-
-# data wrangling to get Otu names 
-#taxa[,"genus"]
-#taxa[,"family"]
-
-# import fasta with outgroup
-bac <- readDNAStringSet("/Users/ericanadolski/GitHub/QB2023_Nadolski/2.Worksheets/8.PhyloTraits/40bac.fasta", format="fasta")
-
-# align sequences using default MUSCLE parameters
-# read.aln <- msaMuscle(bac)
-
-# convert alignment to DNAbin object {ape}
-bac.DNAbin <- as.DNAbin(bac)
-
-# visualize alignment {ape}
-par(mar = c(4, 10, 4, 2))
-image.DNAbin(bac.DNAbin, cex.lab=0.5)
-
-# distance
-bac.F84.outgroup <- match("Methanosarcina", bac.F84.tree$tip.label)
-bac.F84.rooted <- root(bac.F84.tree, bac.F84.outgroup, resolve.root=TRUE)
-# plot F84 neighbor joining tree
-par(mar= c(1,1,2,1)+0.1)
-plot.phylo(bac.F84.rooted, main="Pond Bacteria Neighbor Joining Tree", "phylogram", use.edge.length = FALSE, direction="right", cex=0.6, label.offset=1);
-add.scale.bar(cex=0.7)
-
-```
-
-> ***Synthesis Answer***:  For this week, we decided it would be easiest to work with a subset of the ~35000 OTUs from the pond dataset, so we took a subset of the 40 OTUs with the highest overall read counts across the pond samples (coincidentally this metric was how the OTUs were named in the original project so we have a list of OTU 01-40). Our tree does fit with the known evolutionary relationships of the bacteria, we have the tips labeled by OTU with taxonomic information that we added up to the family level, and OTUs of the same families and genera are clustering together in our tree which confirms the accuracy of our tree compared to known relationships.
-
-
-### loading week 8 data
-
-```{r}
-env <- read.table("/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/20130801_PondDataMod.csv",sep=",",header=TRUE)
-env <- na.omit(env)
-
-# site by species
-comm <- read.otu(shared = "/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.shared", cutoff="1")
-
-# select DNA using grep
-comm <- comm[grep("*-DNA", rownames(comm)), ]
-
-# perform replacement of all matches with gsub
-rownames(comm) <- gsub("\\-DNA", "", rownames(comm))
-rownames(comm) <- gsub("_", "", rownames(comm))
-
-# remove sites not in env dataset
-comm <- comm[rownames(comm) %in% env$Sample_ID, ]
-
-# remove zero-abundance OTUs from data set
-comm <- comm[ , colSums(comm) > 0]
-
-# import taxonomy
-tax <- read.tax(taxonomy = "/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.1.cons.taxonomy")
-```
-
-### Alignment 
-```{r}
-# import alignment file
-ponds.cons <- read.alignment(file = "/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/INPonds.final.rdp.1.rep.fasta", format="fasta")
-
-# rename OTUs in fasta
-ponds.cons$nam <- gsub("\\|.*$", "", gsub("^.*?\t", "", ponds.cons$nam))
-
-# import outgroup
-outgroup <- read.alignment(file="/Users/joyobrien/GitHub/QB2023_OBrien/2.Worksheets/9.PhyloCom/data/methanosarcina.fasta", format="fasta")
-
-#convert alignment files to DNAbin and combine
-DNAbin <- rbind(as.DNAbin(outgroup),as.DNAbin(ponds.cons))
-
-#visualize alignment
-image.DNAbin(DNAbin, show.labels=T, cex.lab=0.05, las=1)
-
-# make distance matrix {ape}
-seq.dist.jc <- dist.dna(DNAbin, model="JC", pairwise.deletion=FALSE)
-
-# make neighbor joining tree file {ape}
-phy.all <- bionj(seq.dist.jc)
-
-
-# drop tips of zero occurrence OTUs {ape}
-phy <- drop.tip(phy.all, phy.all$tip.label[!phy.all$tip.label %in% c(colnames(comm), "Methanosarcina")])
-# ID outgroup
-outgroup <- match("Methanosarcina", phy$tip.label)
-# root tree
-phy <- root(phy,"Methanosarcina",resolve.root = TRUE)
-#plot rooted tree {ape}
-par(mar = c(1, 1, 2, 1) + 0.1)
-plot.phylo(phy, main = "Neighbor Joining Tree", "phylogram",
-      show.tip.label =TRUE, use.edge.length = FALSE,
-      direction = "right", cex = 0.6, label.offset = 1)
-
-```
-
-###  PHYLOGENETIC ALPHA DIVERSITY
-
-```{r}
-# calculate Faith's Phylogenetic Diversity (PD) and S {picante}
-pd <- pd(comm,phy,include.root=FALSE)
-```
-> ***PD description***:  PD is calculated by summing the branch lengths for each species in the phylogenetic tree, so it will increase with increasing richness (+1 richness = +1 tip to the tree).
-
-
-### Phylogenetic Resemblance Matrix 
-```{r}
-# phylogenetic distance matrix
-phydist <- cophenetic.phylo(phy)
-```
-
-### NRI and NTI, Phylogenetic Dispersion Within a Sample
-
-```{r}
-# estimate standardized effect size for NRI, mean phylo distance 
-ses.mpd <- ses.mpd(comm, phydist, null.model="taxa.labels",
-                   abundance.weighted=FALSE, runs=25)
-# calculate NRI
-NRI <- as.matrix(-1 * ((ses.mpd[,2] - ses.mpd[,3]) / ses.mpd[,4]))
-rownames(NRI) <- row.names(ses.mpd)
-colnames(NRI) <- "NRI"
-
-## abundance weighted
-# estimate standardized effect size for NRI, mean phylo distance 
-ses.mpd.ab <- ses.mpd(comm, phydist, null.model="taxa.labels",
-                   abundance.weighted=TRUE, runs=25)
-# calculate NRI
-NRI.ab <- as.matrix(-1 * ((ses.mpd.ab[,2] - ses.mpd.ab[,3]) / ses.mpd.ab[,4]))
-rownames(NRI.ab) <- row.names(ses.mpd.ab)
-colnames(NRI.ab) <- "NRI"
-
-# estimate standardized effect size for NTI, mean nearest neighbor distance 
-ses.mntd <- ses.mntd(comm, phydist, null.model = "taxa.labels",
-                     abundance.weighted = FALSE, runs=25)
-
-# calculate NTI
-NTI <- as.matrix(-1 * ((ses.mntd[,2] - ses.mntd[,3]) / ses.mntd[,4]))
-rownames(NTI) <- row.names(ses.mntd)
-colnames(NTI) <- "NTI"
-
-## abundance weighted
-# estimate standardized effect size for NRI, mean phylo distance 
-ses.mntd.ab <- ses.mpd(comm, phydist, null.model="taxa.labels",
-                   abundance.weighted=TRUE, runs=25)
-# calculate NRI
-NTI.ab <- as.matrix(-1 * ((ses.mntd.ab[,2] - ses.mntd.ab[,3]) / ses.mntd.ab[,4]))
-rownames(NTI.ab) <- row.names(ses.mntd.ab)
-colnames(NTI.ab) <- "NTI"
-```
-
-> ***NRI***:  The NRI calculation is a way to test for phylogenetic clustering or overdispersion, by calculating the average pairwise branch length separating the tips of the tree (MPD), and then by calculating the difference between observed MPD and randomized mean MPD divided by the standard deviation of the randomized MPD values. The index value tells you if the pairwise branch lengths in your tree are more dispersed or more clustered than expected by chance under a null model.
-> ***NTI***:  The NTI calculation is another way to test for phylogenetic clustering or overdispersion, by calculating the average pairwise branch length separating each tip of the tree from its most closely related neighbor (MNND), and then by calculating the difference between observed MNND and randomized mean MNND divided by the standard deviation of the randomized MNND values. The index value tells you if the branch lengths between each tip of your tree and its closest neighbor are more dispersed or more clustered than expected by chance under a null model.
-
-### PCoA based on the UniFrac distances (phylogenetically based community resemblance matrix)
-
-```{r}
-# unifrac distance
-dist.uf <- unifrac(comm, phy)
-
-# phylogenetic PCoA
-pond.pcoa <- cmdscale(dist.uf, eig=T, k=3)
-
-var1 <- round(pond.pcoa$eig[1] / sum(pond.pcoa$eig), 3) * 100
-var2 <- round(pond.pcoa$eig[2] / sum(pond.pcoa$eig), 3) * 100
-var3 <- round(pond.pcoa$eig[3] / sum(pond.pcoa$eig), 3) * 100
-total.sum.eig <- sum(var1, var2, var3)
-
-# phylogenetic PCoA plot
-par(mar=c(5,5,1,2)+0.1)
-plot(pond.pcoa$points[ ,1], pond.pcoa$points[ ,2],
-     xlim= c(-0.2,0.2), ylim = c(-.16,0.16),
-     xlab= paste("PCoA 1 (", var1, "%)", sep = ""),
-     ylab= paste("PCoA 2 (", var2, "%)", sep = ""),
-     pch = 16, cex = 2.0, type = "n", cex.lab = 1.5,
-     cex.axis=1.2, axes=FALSE);
-axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
-axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1);
-abline(h = 0, v = 0, lty = 3);
-box(lwd=2);
-points(pond.pcoa$points[,1], pond.pcoa$points[,2],
-       pch = 19, cex = 3, bg = "gray", col = "gray");
-text(pond.pcoa$points[,1], pond.pcoa$points[,2], labels=rownames(pond.pcoa$points))
-
-```
-> ***Beta diversity visualiation description***: Using only taxonomic info, 49% of the variation in the data is explained by the first three PCs. When phylogenetic information is included, the variation explained by the first three PCs drops to 20.9%, meaning that the phylogenetic relationships are significantly important for understanding the variation in communities among the ponds because that alone explains ~20-30% of community similarity.
-
-
-### Categorical permanova to test the hypothesis that watershed has an effect on the phylogenetic diversity of bacterial communities
-
-```{r}
-# define environmental category
-watershed <- env$Location
-
-# run permanova with adonis
-phylo.adonis<- adonis2(dist.uf ~ watershed, permutations = 999)
-
-# compare to taxonomy permanova
-tax.adonis <- adonis2(vegdist(decostand(comm, method = "log"), method="bray") ~ watershed, permutations = 999)
-
-```
-
-### data wrangling to remove redundant environmental variables
-
-```{r}
-# define environmental variables
-envs <- env[,5:19]
-
-# remove redundant variables
-envs <- envs[, -which(names(envs) %in% c("TDS", "Salinity", "Cal_Volume"))]
-
-# create distance matrix for env. variables
-env.dist <- vegdist(scale(envs), method="euclid")
-```
-
-### Mantel test to evaluate whether or not UniFrac distance is correlated with environmental variation
-
-```{r}
-mantel(dist.uf, env.dist)
-```
-
-### Phylogenetic distance-based Redundancy Analysis (dbRDA) 
-1. dbRDA to test the hypothesis that environmental variation effects the phylogenetic diversity of bacterial communities,  
-2. permutation test to determine significance
-3. plot of dbRDA results
-
-```{r}
-# Constrained Ordination
-ponds.dbrda <- dbrda(dist.uf ~ ., data = as.data.frame(scale(envs)))
-
-# permutation tests to evaluate significance
-anova(ponds.dbrda, by="axis")
-envfit(ponds.dbrda, envs, perm=999)
-
-#calculate explained variation
-exvar1 <- round(ponds.dbrda$CCA$eig[1] / sum(c(ponds.dbrda$CCA$eig, ponds.dbrda$CA$eig)), 3) *100
-exvar2 <- round(ponds.dbrda$CCA$eig[2] / sum(c(ponds.dbrda$CCA$eig, ponds.dbrda$CA$eig)), 3) *100
-
-# create vectors to plot
-vectors <- scores(ponds.dbrda,display="bp")
-
-# now plot selected model, define plot parameters
-par(mar=c(5,5,4,4)+0.1)
-plot(scores(ponds.dbrda, display="wa"), 
-     xlab=paste("dbRDA 1 (", exvar1,"%)", sep=""), 
-     ylab=paste("dbRDA 2 (", exvar2, "%)", sep=""),
-     pch=16, cex=2.0, type="n", cex.lab=1.5, cex.axis=1.2, axes=FALSE);
-axis(side=1, labels=T, lwd.ticks=2, cex.axis=1.2,las=1);
-axis(side=2, labels=T, lwd.ticks=2, cex.axis=1.2,las=1);
-abline(h=0,v=0,lty=3);
-box(lwd=2);
-points(scores(ponds.dbrda, display="wa"), pch=19,cex=3,bg="gray",col="gray");
-text(scores(ponds.dbrda, display="wa"), labels=row.names(scores(ponds.dbrda, display="wa")));
-arrows(0,0,vectors[,1], vectors[,2], lwd=2, lty=1, length=0.2, col="red");
-text(vectors[,1], vectors[,2], pos=3,labels=row.names(vectors));
-axis(side=3, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
-     at=pretty(range(vectors[,1]))*2, labels=pretty(range(vectors[,1])));
-axis(side=4, lwd.ticks=2, cex.axis=1.2,las=1, col="red", lwd=2.2,
-     at=pretty(range(vectors[,2]))*2, labels=pretty(range(vectors[,2])))
-```
-
-> ***dbRDA Description***: It appears that the BC and HNF sites cluster more closely together into one cluster, and the YSF sites cluster more tightly into another cluster. According to the Mantel test, 16% of the variation in pond community similarity varies in correspondence with pond environmental similarity. The dbRDA also shows that a variety of environmental variables covary with community composition along the first two dbRDA axes 
+> ***Ordination Description***: It appears that the BC and HNF sites cluster more closely together into one cluster, and the YSF sites cluster more tightly into another cluster. According to the Mantel test, 23% of the variation in pond community similarity varies in correspondence with pond environmental similarity. The NMDS with envfit also shows that a variety of environmental variables covary with community composition along the first two NMDS axes, as well as a number of indicator species.
